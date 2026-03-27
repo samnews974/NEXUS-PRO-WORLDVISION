@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ultimate Trading Video - Hosting Pro</title>
+  <style>
+    :root {
+      --gold:#d4af67;
+      --gold2:#f0d799;
+      --blue:#59a6ff;
+      --pink:#ff5c9c;
+      --text:#f7f8fc;
+      --muted:#c9d1e4;
+    }
+    * { box-sizing:border-box; }
+    html, body { height:100%; }
+    body {
+      margin:0;
+      background:#020306;
+      color:var(--text);
+      font-family:Arial, Helvetica, sans-serif;
+      overflow:hidden;
+    }
+    .stage {
+      position:relative;
+      width:100vw;
+      /* Ratio 16:9 responsive - s adapte a la fenetre */
+      height:min(100vh, 56.25vw);
+      overflow:hidden;
+      background:#000;
+    }
+
+    /* Sur mobile portrait: plus de hauteur pour voir le contenu */
+    @media (max-width:768px) and (orientation:portrait) {
+      .stage {
+        height:100svh;
+      }
+    }
+
+    video {
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      background:#000;
+      filter:saturate(1.08) contrast(1.05) brightness(1.03);
+    }
+    .fx-dark {
+      position:absolute;
+      inset:0;
+      background:
+        radial-gradient(circle at center, transparent 48%, rgba(0,0,0,.18) 100%),
+        linear-gradient(180deg, rgba(0,0,0,.16) 0%, rgba(0,0,0,.08) 26%, rgba(0,0,0,.55) 100%);
+      pointer-events:none;
+    }
+    .fx-lines {
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      opacity:.16;
+      background-image:
+        linear-gradient(90deg, transparent 0%, rgba(89,166,255,.18) 50%, transparent 100%),
+        linear-gradient(0deg, transparent 0%, rgba(255,92,156,.10) 50%, transparent 100%);
+      background-size:100% 2px, 2px 100%;
+      animation: scan 7s linear infinite;
+    }
+    .impact-ring {
+      position:absolute;
+      inset:0;
+      z-index:4;
+      pointer-events:none;
+      opacity:0;
+      background:
+        radial-gradient(circle at center, rgba(255,255,255,.16) 0%, rgba(255,255,255,.04) 14%, transparent 38%);
+      mix-blend-mode:screen;
+    }
+    .impact-ring.fire { animation:ringBlast .75s ease-out forwards; }
+    .beat-bar {
+      position:absolute;
+      left:0; right:0; bottom:0;
+      height:3px;
+      z-index:7;
+      background: linear-gradient(90deg, transparent, var(--blue), var(--pink), var(--gold), transparent);
+      box-shadow: 0 0 18px rgba(212,175,103,.38);
+      transform-origin:center;
+      opacity:0;
+    }
+    .beat-bar.fire { animation:beatFlash .6s ease-out forwards; }
+
+    .topbar {
+      position:absolute;
+      top:18px; left:18px; right:18px;
+      z-index:5;
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      pointer-events:none;
+    }
+    .pill {
+      padding:10px 14px;
+      border-radius:999px;
+      background:rgba(7,10,16,.48);
+      border:1px solid rgba(255,255,255,.12);
+      backdrop-filter:blur(10px);
+      font-size:.8rem;
+      letter-spacing:.8px;
+      text-transform:uppercase;
+      box-shadow:0 16px 40px rgba(0,0,0,.28);
+    }
+    .top-right {
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+    .signal-hud {
+      position:absolute;
+      top:92px;
+      right:18px;
+      z-index:8;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      pointer-events:none;
+    }
+    .hud-card {
+      padding:10px 12px;
+      border-radius:14px;
+      background:rgba(7,10,16,.56);
+      border:1px solid rgba(255,255,255,.10);
+      backdrop-filter:blur(10px);
+      box-shadow:0 14px 34px rgba(0,0,0,.24);
+      font-size:.78rem;
+      letter-spacing:.8px;
+      text-transform:uppercase;
+      opacity:0;
+      transform:translateY(-8px);
+      transition:opacity .35s ease, transform .35s ease;
+    }
+    .hud-card.show {
+      opacity:1;
+      transform:translateY(0);
+    }
+    .message {
+      position:absolute;
+      left:5%;
+      right:5%;
+      bottom:10%;
+      z-index:6;
+      display:flex;
+      align-items:flex-end;
+      opacity:0;
+      transform:translateY(24px) scale(.985);
+      transition:opacity .85s ease, transform .85s ease;
+      pointer-events:none;
+    }
+    .message.show {
+      opacity:1;
+      transform:translateY(0) scale(1);
+    }
+    .card {
+      max-width:760px;
+      padding:22px 24px;
+      border-radius:24px;
+      background:rgba(7,10,16,.28);
+      border:1px solid rgba(255,255,255,.10);
+      backdrop-filter:blur(7px);
+      box-shadow:0 20px 55px rgba(0,0,0,.30);
+      position:relative;
+      overflow:hidden;
+      animation: pulseText 2.8s ease-in-out infinite, glowFX 2.5s ease-in-out infinite;
+    }
+    .card::before {
+      content:"";
+      position:absolute;
+      left:0; top:0; right:0;
+      height:2px;
+      background:linear-gradient(90deg, transparent, var(--gold), var(--blue), var(--pink), transparent);
+      opacity:.9;
+    }
+    .tag {
+      display:inline-block;
+      margin-bottom:14px;
+      padding:8px 14px;
+      border-radius:999px;
+      background:rgba(212,175,103,.16);
+      color:#f6e4b1;
+      border:1px solid rgba(240,215,153,.28);
+      font-size:.82rem;
+      letter-spacing:1px;
+      text-transform:uppercase;
+    }
+    .headline {
+      margin:0 0 12px;
+      font-size:clamp(2.2rem, 4.8vw, 5.2rem);
+      line-height:1.03;
+      font-weight:900;
+      text-transform:uppercase;
+      text-shadow:0 10px 34px rgba(0,0,0,.50);
+    }
+    .gold {
+      background:linear-gradient(135deg, #fff7df 0%, var(--gold2) 38%, var(--gold) 100%);
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+    }
+    .text {
+      margin:0;
+      white-space:pre-line;
+      color:rgba(255,255,255,.94);
+      font-size:clamp(1.05rem, 1.3vw, 1.2rem);
+      line-height:1.55;
+      text-shadow:0 6px 18px rgba(0,0,0,.40);
+    }
+    .line {
+      width:min(320px, 45vw);
+      height:2px;
+      margin-top:16px;
+      background:linear-gradient(90deg, transparent, var(--gold), #fff5d1, transparent);
+      box-shadow:0 0 18px rgba(212,175,103,.28);
+    }
+    .glitch { animation:glitch 2.2s infinite; }
+    .price-flash { animation: priceFlash 1s ease-in-out infinite; }
+    .cta-pulse { animation: ctaPulse 1.2s ease-in-out infinite; }
+    .shock { animation: shockFX .55s ease; }
+
+    .message.final-screen {
+      left:4%;
+      right:4%;
+      bottom:7%;
+    }
+    .final-screen .card {
+      max-width:980px;
+      background:linear-gradient(180deg, rgba(7,10,16,.42) 0%, rgba(7,10,16,.62) 100%);
+      border:1px solid rgba(240,215,153,.22);
+      box-shadow:0 28px 80px rgba(0,0,0,.42), 0 0 45px rgba(212,175,103,.10);
+      transform-origin:center bottom;
+    }
+    .message.final-screen.show { animation: finalScreenIn 1s ease forwards; }
+    .final-title {
+      margin:0 0 14px;
+      font-size:clamp(1.8rem, 3.6vw, 3.6rem);
+      line-height:1.06;
+      font-weight:900;
+      text-transform:uppercase;
+      letter-spacing:.5px;
+      text-shadow:0 10px 34px rgba(0,0,0,.50);
+    }
+    .payment-grid {
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:14px 18px;
+      margin-top:14px;
+    }
+    .payment-item, .contact-box {
+      padding:14px 16px;
+      border-radius:18px;
+      background:rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.08);
+      backdrop-filter:blur(4px);
+    }
+    .payment-label, .contact-label {
+      display:block;
+      margin-bottom:6px;
+      color:#f6e4b1;
+      font-size:.8rem;
+      letter-spacing:.9px;
+      text-transform:uppercase;
+    }
+    .payment-value, .contact-value {
+      font-size:1.05rem;
+      line-height:1.45;
+      color:rgba(255,255,255,.96);
+      word-break:break-word;
+    }
+    .contact-row {
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:14px 18px;
+      margin-top:16px;
+    }
+    .final-note {
+      margin-top:16px;
+      padding:12px 16px;
+      border-radius:16px;
+      background:rgba(89,166,255,.08);
+      border:1px solid rgba(89,166,255,.16);
+      color:rgba(255,255,255,.96);
+      font-size:1.05rem;
+      line-height:1.5;
+    }
+
+    .monster-cta-wrap {
+      margin-top:18px;
+      display:flex;
+      flex-wrap:wrap;
+      gap:14px;
+      align-items:center;
+    }
+    .monster-btn {
+      position:relative;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-width:260px;
+      padding:18px 28px;
+      border-radius:18px;
+      background:linear-gradient(135deg, #fff2c7 0%, var(--gold2) 35%, var(--gold) 100%);
+      color:#111;
+      font-size:1.1rem;
+      font-weight:900;
+      letter-spacing:1px;
+      text-transform:uppercase;
+      border:1px solid rgba(255,255,255,.22);
+      box-shadow:0 18px 40px rgba(0,0,0,.28), 0 0 28px rgba(212,175,103,.45);
+      overflow:hidden;
+    }
+    .monster-btn::before {
+      content:"";
+      position:absolute;
+      inset:-20%;
+      background:linear-gradient(90deg, transparent 0%, rgba(255,255,255,.55) 50%, transparent 100%);
+      transform:translateX(-130%) skewX(-18deg);
+      animation:shineSweep 2.4s linear infinite;
+    }
+    .monster-cta-note {
+      padding:12px 16px;
+      border-radius:14px;
+      background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.08);
+      color:rgba(255,255,255,.96);
+      font-size:.92rem;
+      line-height:1.45;
+      max-width:330px;
+    }
+    #m11.show .monster-btn {
+      animation: monsterBounce .95s ease, monsterPulse 1.25s ease-in-out infinite 1s;
+    }
+
+    .profit {
+      position:absolute;
+      right:22px;
+      bottom:22px;
+      z-index:7;
+      padding:12px 16px;
+      border-radius:16px;
+      background:rgba(7,10,16,.62);
+      border:1px solid rgba(255,255,255,.10);
+      backdrop-filter:blur(10px);
+      box-shadow:0 16px 40px rgba(0,0,0,.28);
+      font-size:.9rem;
+      letter-spacing:.7px;
+      text-transform:uppercase;
+      display:none;
+    }
+    .profit.show { display:block; }
+
+    .controls {
+      position:absolute;
+      left:18px;
+      bottom:18px;
+      z-index:8;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .btn {
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(7,10,16,.68);
+      color:#fff;
+      border-radius:14px;
+      padding:12px 16px;
+      font-weight:700;
+      cursor:pointer;
+      backdrop-filter:blur(12px);
+      box-shadow:0 16px 40px rgba(0,0,0,.28);
+    }
+    .btn.primary {
+      background:linear-gradient(135deg, var(--gold), var(--gold2));
+      color:#111;
+      border:none;
+    }
+    .status {
+      position:absolute;
+      left:18px;
+      right:18px;
+      top:78px;
+      z-index:8;
+      display:inline-block;
+      width:fit-content;
+      max-width:calc(100vw - 36px);
+      padding:10px 14px;
+      border-radius:14px;
+      background:rgba(7,10,16,.58);
+      border:1px solid rgba(255,255,255,.10);
+      backdrop-filter:blur(10px);
+      font-size:.84rem;
+    }
+    .unlock {
+      position:absolute; inset:0; z-index:9;
+      display:flex; align-items:center; justify-content:center;
+      background:rgba(0,0,0,.08);
+      backdrop-filter:blur(2px);
+    }
+    .unlock-card {
+      padding:18px 24px;
+      border-radius:22px;
+      background:rgba(7,10,16,.78);
+      border:1px solid rgba(255,255,255,.14);
+      box-shadow:0 20px 50px rgba(0,0,0,.35);
+      text-align:center;
+      max-width:420px;
+    }
+    .unlock-title { margin:0 0 8px; font-size:1.05rem; font-weight:800; }
+    .unlock-text { margin:0 0 14px; font-size:.92rem; color:var(--muted); line-height:1.45; }
+
+    @keyframes scan {
+      0% { transform:translateY(-10%); }
+      50% { transform:translateY(10%); }
+      100% { transform:translateY(-10%); }
+    }
+    @keyframes glitch {
+      0%,100% { transform:translate(0,0); filter:none; }
+      10% { transform:translate(-1px,1px); }
+      12% { transform:translate(1px,-1px); }
+      14% { transform:translate(0,0); }
+      65% { transform:translate(0,0); }
+      67% { transform:translate(1px,0); }
+      69% { transform:translate(-1px,0); }
+      71% { transform:translate(0,0); }
+    }
+    @keyframes pulseText {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.04); }
+      100% { transform: scale(1); }
+    }
+    @keyframes glowFX {
+      0% { box-shadow: 0 0 10px rgba(212,175,103,.2); }
+      50% { box-shadow: 0 0 30px rgba(212,175,103,.5); }
+      100% { box-shadow: 0 0 10px rgba(212,175,103,.2); }
+    }
+    @keyframes ringBlast {
+      0% { opacity:0; transform:scale(.86); }
+      18% { opacity:.75; }
+      100% { opacity:0; transform:scale(1.25); }
+    }
+    @keyframes beatFlash {
+      0% { opacity:0; transform:scaleX(.25); }
+      25% { opacity:1; transform:scaleX(1); }
+      100% { opacity:0; transform:scaleX(1.1); }
+    }
+    @keyframes ctaPulse {
+      0%,100% { transform:scale(1); filter:brightness(1); }
+      50% { transform:scale(1.035); filter:brightness(1.1); }
+    }
+    @keyframes shockFX {
+      0% { transform:scale(.96); filter:blur(2px); }
+      35% { transform:scale(1.02); filter:blur(0); }
+      100% { transform:scale(1); filter:blur(0); }
+    }
+    @keyframes priceFlash {
+      0%,100% { text-shadow:0 0 0 rgba(240,215,153,0); }
+      50% { text-shadow:0 0 26px rgba(240,215,153,.75); }
+    }
+    @keyframes finalScreenIn {
+      0% { opacity:0; transform:translateY(30px) scale(.96); filter:blur(4px); }
+      60% { opacity:1; transform:translateY(-3px) scale(1.01); filter:blur(0); }
+      100% { opacity:1; transform:translateY(0) scale(1); filter:blur(0); }
+    }
+    @keyframes shineSweep {
+      0% { transform: translateX(-130%) skewX(-18deg); }
+      100% { transform: translateX(130%) skewX(-18deg); }
+    }
+    @keyframes monsterBounce {
+      0% { transform:scale(.82) translateY(20px); opacity:0; }
+      55% { transform:scale(1.06) translateY(-3px); opacity:1; }
+      100% { transform:scale(1) translateY(0); opacity:1; }
+    }
+    @keyframes monsterPulse {
+      0%, 100% { transform:scale(1); box-shadow:0 18px 40px rgba(0,0,0,.28), 0 0 22px rgba(212,175,103,.35); }
+      50% { transform:scale(1.04); box-shadow:0 22px 48px rgba(0,0,0,.30), 0 0 42px rgba(212,175,103,.72); }
+    }
+
+    @media (max-width:900px) {
+      .payment-grid, .contact-row { grid-template-columns:1fr; }
+      .final-screen .card { max-width:100%; }
+    }
+    @media (max-width:820px) {
+      .message { left:4%; right:4%; bottom:9%; }
+      .card { max-width:100%; padding:18px; }
+      .headline { font-size:clamp(1.45rem, 7vw, 2.7rem); }
+      .text { font-size:.9rem; }
+      .profit { right:14px; bottom:86px; font-size:.8rem; }
+      .monster-btn {
+        min-width:220px;
+        width:100%;
+        font-size:1rem;
+        padding:16px 20px;
+      }
+      .monster-cta-wrap {
+        flex-direction:column;
+        align-items:stretch;
+      }
+      .monster-cta-note {
+        max-width:100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="stage" id="stage">
+    <div class="impact-ring" id="impactRing"></div>
+    <div class="beat-bar" id="beatBar"></div>
+
+    <div class="signal-hud">
+      <div class="hud-card" id="hud1">AI SIGNAL • ACTIVE</div>
+      <div class="hud-card" id="hud2">MARKET MODE • LIVE</div>
+      <div class="hud-card" id="hud3">ACCESS • LIMITED</div>
+    </div>
+
+    <video id="video" playsinline preload="auto" autoplay muted>
+      <source src="video.mp4" type="video/mp4">
+    </video>
+
+    <audio id="audio" preload="auto">
+      <source src="music.mp3" type="audio/mpeg">
+    </audio>
+
+    <div class="fx-dark"></div>
+    <div class="fx-lines"></div>
+
+    <div class="topbar">
+      <div class="pill">ULTIMATE TRADING VIDEO • HOSTING PRO</div>
+      <div class="top-right">
+        <div class="pill">BTC • ETH • XRP</div>
+        <div class="pill">EUR/USD</div>
+        <div class="pill">LICENSE $49</div>
+      </div>
+    </div>
+
+    <div class="status" id="status">Video started muted. Click Enable Sound.</div>
+
+    <div class="message" id="m1">
+      <div class="card">
+        <h1 class="headline glitch"><span class="gold">YOU ARE</span> LOSING MONEY.</h1>
+      </div>
+    </div>
+
+    <div class="message" id="m2">
+      <div class="card">
+        <p class="text">No precision.
+No data.
+No edge.</p>
+      </div>
+    </div>
+
+    <div class="message" id="m3">
+      <div class="card">
+        <h1 class="headline"><span class="gold">THIS AI</span> FIXES EVERYTHING.</h1>
+      </div>
+    </div>
+
+    <div class="message" id="m4">
+      <div class="card">
+        <p class="text">Real-time prediction.
+Market sentiment.
+High-frequency detection.</p>
+      </div>
+    </div>
+
+    <div class="message" id="m5">
+      <div class="card">
+        <p class="text">Faster decisions.
+Better entries.
+Higher precision.</p>
+      </div>
+    </div>
+
+    <div class="message" id="m6">
+      <div class="card">
+        <p class="text">BTC • ETH • XRP
+Synthetic Deriv
+EUR/USD</p>
+      </div>
+    </div>
+
+    <div class="message" id="m7">
+      <div class="card">
+        <p class="text">Private system.
+Not public.</p>
+      </div>
+    </div>
+
+    <div class="message" id="m8">
+      <div class="card">
+        <h1 class="headline price-flash"><span class="gold">ONLY</span> $49</h1>
+      </div>
+    </div>
+
+    <div class="message" id="m9">
+      <div class="card">
+        <p class="text">Full access.
+All features.
+Unlimited updates.</p>
+      </div>
+    </div>
+
+    <div class="message shock" id="m10">
+      <div class="card">
+        <h1 class="headline glitch">LAST CHANCE AT $49.</h1>
+      </div>
+    </div>
+
+    <div class="message cta-pulse" id="m11">
+      <div class="card">
+        <div class="tag">FINAL CALL TO ACTION</div>
+        <h1 class="headline"><span class="gold">GET ACCESS</span> NOW.</h1>
+        <div class="monster-cta-wrap">
+          <div class="monster-btn">Get Access Now</div>
+          <div class="monster-cta-note">Early access price: <strong>$49</strong><br>Private system • Limited access</div>
+        </div>
+        <div class="line"></div>
+      </div>
+    </div>
+
+    <div class="message final-screen" id="m12">
+      <div class="card">
+        <div class="tag">FINAL ACCESS • PAYMENT</div>
+        <h2 class="final-title"><span class="gold">Cryptocurrency</span> payment method</h2>
+
+        <div class="payment-grid">
+          <div class="payment-item"><span class="payment-label">USDC</span><div class="payment-value">0x65A9E0ce93050680eA215f3EE1b03767f82048C0</div></div>
+          <div class="payment-item"><span class="payment-label">ETH</span><div class="payment-value">0x65A9E0ce93050680eA215f3EE1b03767f82048C0</div></div>
+          <div class="payment-item"><span class="payment-label">BTC</span><div class="payment-value">bc1q56fk8lzkk6s9043fpj78evj3xg2ngcfyhjp9hn</div></div>
+          <div class="payment-item"><span class="payment-label">USDT ERC20</span><div class="payment-value">0x65A9E0ce93050680eA215f3EE1b03767f82048C0</div></div>
+          <div class="payment-item"><span class="payment-label">USDT TRC20</span><div class="payment-value">TKntAPZfjBM6UUnqrSsouBqBrqF466qnhr</div></div>
+        </div>
+
+        <div class="contact-row">
+          <div class="contact-box"><span class="contact-label">Telegram</span><div class="contact-value">@TraderProWorld</div></div>
+          <div class="contact-box"><span class="contact-label">Email</span><div class="contact-value">worldvision@orange.fr</div></div>
+        </div>
+
+        <div class="final-note">Contact me to receive your access code.</div>
+      </div>
+    </div>
+
+    <div class="profit" id="profitBox">DIRECT SALES MODE • HIGH CONVERSION</div>
+
+    <div class="controls">
+      <button class="btn primary" id="enableBtn">Enable Sound</button>
+      <button class="btn" id="pauseBtn">Pause</button>
+      <button class="btn" id="restartBtn">Restart</button>
+      <button class="btn" id="fullBtn">Fullscreen</button>
+    </div>
+
+    <div class="unlock" id="unlockLayer">
+      <div class="unlock-card">
+        <div class="unlock-title">Enable sound</div>
+        <p class="unlock-text">The video starts muted automatically. Click to enable the integrated music.</p>
+        <button class="btn primary" id="unlockCenterBtn">Enable Sound</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+const AUDIO_DURATION = 21.264;
+
+const video = document.getElementById("video");
+const audio = document.getElementById("audio");
+const enableBtn = document.getElementById("enableBtn");
+const unlockCenterBtn = document.getElementById("unlockCenterBtn");
+const unlockLayer = document.getElementById("unlockLayer");
+const pauseBtn = document.getElementById("pauseBtn");
+const restartBtn = document.getElementById("restartBtn");
+const fullBtn = document.getElementById("fullBtn");
+const statusBox = document.getElementById("status");
+const profitBox = document.getElementById("profitBox");
+const impactRing = document.getElementById("impactRing");
+const beatBar = document.getElementById("beatBar");
+const hud1 = document.getElementById("hud1");
+const hud2 = document.getElementById("hud2");
+const hud3 = document.getElementById("hud3");
+let lastActiveId = null;
+
+const messages = [
+  { id:"m1", start:1,  end:4 },
+  { id:"m2", start:4,  end:7 },
+  { id:"m3", start:7,  end:12 },
+  { id:"m4", start:12, end:18 },
+  { id:"m5", start:18, end:24 },
+  { id:"m6", start:24, end:30 },
+  { id:"m7", start:30, end:36 },
+  { id:"m8", start:36, end:42 },
+  { id:"m9", start:42, end:50 },
+  { id:"m10", start:50, end:60 },
+  { id:"m11", start:60, end:70 },
+  { id:"m12", start:80, end:120 }
+];
+
+let soundEnabled = false;
+let syncing = false;
+
+function setStatus(text) {
+  statusBox.textContent = text;
+}
+function showOnly(activeId) {
+  messages.forEach(m => {
+    const el = document.getElementById(m.id);
+    if (m.id === activeId) el.classList.add("show");
+    else el.classList.remove("show");
+  });
+}
+function hideAll() {
+  messages.forEach(m => document.getElementById(m.id).classList.remove("show"));
+}
+function getWrappedAudioTime(videoTime) {
+  const d = audio.duration || AUDIO_DURATION;
+  if (!d || !isFinite(d) || d <= 0) return videoTime || 0;
+  return (videoTime || 0) % d;
+}
+function fireImpact() {
+  impactRing.classList.remove("fire");
+  beatBar.classList.remove("fire");
+  void impactRing.offsetWidth;
+  void beatBar.offsetWidth;
+  impactRing.classList.add("fire");
+  beatBar.classList.add("fire");
+}
+function updateHUD(t) {
+  hud1.classList.toggle("show", t >= 7 && t < 70);
+  hud2.classList.toggle("show", t >= 18 && t < 70);
+  hud3.classList.toggle("show", t >= 42 && t < 120);
+}
+async function syncAudio(force=false) {
+  if (!soundEnabled || syncing) return;
+  syncing = true;
+  try {
+    const target = getWrappedAudioTime(video.currentTime || 0);
+    const diff = Math.abs((audio.currentTime || 0) - target);
+    if (force || diff > 0.45) audio.currentTime = target;
+    if (audio.paused) {
+      audio.volume = 1;
+      await audio.play();
+    }
+  } catch (e) {
+  } finally {
+    syncing = false;
+  }
+}
+async function enableSound() {
+  try {
+    soundEnabled = true;
+    audio.loop = true;
+    audio.volume = 1;
+    await syncAudio(true);
+    unlockLayer.style.display = "none";
+    enableBtn.textContent = "Sound Enabled";
+    setStatus("Sound enabled.");
+  } catch(e) {
+    soundEnabled = false;
+    setStatus("The browser is still blocking sound. Click again.");
+  }
+}
+async function restartPlayback() {
+  try {
+    video.currentTime = 0;
+    hideAll();
+    hud1.classList.remove("show");
+    hud2.classList.remove("show");
+    hud3.classList.remove("show");
+    profitBox.classList.remove("show");
+    if (soundEnabled) {
+      audio.currentTime = 0;
+      await audio.play();
+    }
+    await video.play();
+    setStatus(soundEnabled ? "Playback restarted." : "Video restarted muted.");
+  } catch(e) {
+    setStatus("Unable to restart.");
+  }
+}
+async function toggleFullscreen() {
+  const stage = document.getElementById("stage");
+  try {
+    if (!document.fullscreenElement) await stage.requestFullscreen();
+    else await document.exitFullscreen();
+  } catch(e) {
+    setStatus("Fullscreen unavailable.");
+  }
+}
+
+enableBtn.addEventListener("click", enableSound);
+unlockCenterBtn.addEventListener("click", enableSound);
+
+pauseBtn.addEventListener("click", () => {
+  video.pause();
+  audio.pause();
+  setStatus("Playback paused.");
+});
+restartBtn.addEventListener("click", restartPlayback);
+fullBtn.addEventListener("click", toggleFullscreen);
+
+video.addEventListener("play", async () => {
+  if (soundEnabled) await syncAudio(true);
+});
+video.addEventListener("pause", () => {
+  if (!video.ended) audio.pause();
+});
+video.addEventListener("seeking", async () => {
+  if (soundEnabled) await syncAudio(true);
+});
+video.addEventListener("timeupdate", async () => {
+  const t = video.currentTime || 0;
+  let active = null;
+  messages.forEach(m => {
+    if (t >= m.start && t < m.end) active = m.id;
+  });
+  if (active) {
+    showOnly(active);
+    if (active !== lastActiveId) {
+      fireImpact();
+      lastActiveId = active;
+    }
+  } else {
+    hideAll();
+    lastActiveId = null;
+  }
+
+  updateHUD(t);
+
+  if (t >= 15 && t < 76) profitBox.classList.add("show");
+  else profitBox.classList.remove("show");
+
+  if (soundEnabled) {
+    const wrapped = getWrappedAudioTime(t);
+    const diff = Math.abs((audio.currentTime || 0) - wrapped);
+    if (audio.paused || diff > 0.6) await syncAudio(audio.paused);
+  }
+});
+video.addEventListener("ended", () => {
+  audio.pause();
+  audio.currentTime = 0;
+  soundEnabled = false;
+  hideAll();
+  hud1.classList.remove("show");
+  hud2.classList.remove("show");
+  hud3.classList.remove("show");
+  profitBox.classList.remove("show");
+  unlockLayer.style.display = "flex";
+  enableBtn.textContent = "Enable Sound";
+  setStatus("Playback finished.");
+});
+audio.addEventListener("ended", async () => {
+  if (soundEnabled) {
+    try {
+      audio.currentTime = 0;
+      await audio.play();
+    } catch(e) {}
+  }
+});
+window.addEventListener("load", async () => {
+  try {
+    video.muted = true;
+    await video.play();
+    setStatus("Video started muted automatically. Click Enable Sound.");
+  } catch(e) {
+    setStatus("Autoplay blocked. Click Enable Sound.");
+  }
+});
+</script>
+</body>
+</html>
